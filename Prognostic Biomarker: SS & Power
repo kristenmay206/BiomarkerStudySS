@@ -43,14 +43,14 @@ sim.trial = function(it,N,medS.1,HR, p, b){
 	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1
 	N0 = ceiling((1-p)*N); N1 = ceiling(p*N)
 	if (is.na (b) == T){ # if b = NA then assume exp death times
-		Times = c(rexp(N1,hr.1),rexp(N0,hr.0))
+		DeathTimes = c(rexp(N1,hr.1),rexp(N0,hr.0))
 	}else{ gamma = medS.1/(log(2)^(1/b)) # scale parameter for weibull dist
-		Times = c(rweibull(N1,shape = b,scale = gamma),rweibull(N0,shape = b,scale = gamma*HR^(-1/b) )) }
-	Deaths = runif(N1+N0,min = f, max = a+f)
-	Ind = ifelse(Times <= Deaths,1,0)
-	cen.times = pmin(Times,Deaths)
+		DeathTimes = c(rweibull(N1,shape = b,scale = gamma),rweibull(N0,shape = b,scale = gamma*HR^(-1/b) )) }
+	CensTimes = runif(N1+N0,min = f, max = a+f)
+	events = ifelse(DeathTimes <= CensTimes,1,0)
+	times = pmin(DeathTimes,CensTimes)
 	X = rep(c(1,0),c(N1,N0))
-	LRts = survdiff(Surv(cen.times,Ind)~X)$chisq
+	LRts = survdiff(Surv(times,events)~X)$chisq
 	pval = 1-pchisq(LRts,1)
 	return(pval)
 }
