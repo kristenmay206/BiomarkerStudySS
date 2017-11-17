@@ -74,7 +74,7 @@ power = function(n.sim, alpha, N, medS.1,HR, p, b){
 	p = 0.5
 ## input b (shape) to assume weibull death times (exp death times is default) ##
 ##		note: scale parameter calc s.t. med surv time in pos group is medS.1 ##
-# b = 0.25 
+	b = NA # 0.25
 
 ## calc SS for different methods ##
 N.schoen = schoenfeld.ss(HR = HR, medS.1 = medS.1, alpha = alpha, beta = beta, a = a, f = f, p = p)
@@ -83,9 +83,9 @@ N.fo4 = fo4.ss(HR = HR, medS.1 = medS.1, alpha = alpha, beta = beta, a = a, f = 
 
 ## evaluate different SS methods ##
 n.sim = 5000 # number of simulated trials for power evaluation
-pow.schoen = power(n.sim = n.sim, alpha = alpha, N = N.schoen, medS.1 = medS.1, HR = HR, p = p, b = NA)
-pow.rubin = power(n.sim = n.sim, alpha = alpha, N = N.rubin, medS.1 = medS.1, HR = HR, p = p, b = NA)
-pow.fo4 = power(n.sim = n.sim, alpha = alpha, N = N.fo4, medS.1 = medS.1, HR = HR, p = p, b = NA)
+pow.schoen = power(n.sim = n.sim, alpha = alpha, N = N.schoen, medS.1 = medS.1, HR = HR, p = p, b = b)
+pow.rubin = power(n.sim = n.sim, alpha = alpha, N = N.rubin, medS.1 = medS.1, HR = HR, p = p, b = b)
+pow.fo4 = power(n.sim = n.sim, alpha = alpha, N = N.fo4, medS.1 = medS.1, HR = HR, p = p, b = b)
 
 # output results 
 out = rbind(c(ceiling(p*N.schoen)+ceiling((1-p)*N.schoen),ceiling(p*N.schoen),ceiling((1-p)*N.schoen),round(pow.schoen*100)),
