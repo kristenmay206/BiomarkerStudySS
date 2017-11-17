@@ -1,0 +1,132 @@
+### calculate sample size/power for survival data ###
+library(survival)
+# run (4) functions below to calculate SS for 3 methods and cohort SS; (2) functions below to calculate power 
+# can run for individual method or all 3 methods and print all results (csv exported to working directory)
+#####################################################
+# functions for different SS methods
+schmoor.ss = function(HR.1,p,medS.0,alpha,beta,a,f,HR.0,r){
+		## hazard rates ##
+		# control arm - same hazard rates: not prognostic
+		hr.00 = log(2)/medS.0 # biom - 
+		hr.01 = hr.00 # biom +
+		# experimental arm
+		hr.10 = hr.00/HR.0 # biom - 
+		hr.11 = hr.01/HR.1 # biom +
+		HR = HR.1/HR.0 # hazard ratio	
+		## calculating prob of death using simpson's approx and assuming exp distribution ##
+		pi.d11 = 1 - (exp(-hr.11*f)+4*exp(-hr.11*(f+(a/2)))+exp(-hr.11*(f+a)))/6 # trt = 1, Biom = +
+		pi.d10 = 1 - (exp(-hr.10*f)+4*exp(-hr.10*(f+(a/2)))+exp(-hr.10*(f+a)))/6 # trt = 1, Biom = -
+		pi.d01 = 1 - (exp(-hr.01*f)+4*exp(-hr.01*(f+(a/2)))+exp(-hr.01*(f+a)))/6 # trt = 0, Biom = +
+		pi.d00 = 1 - (exp(-hr.00*f)+4*exp(-hr.00*(f+(a/2)))+exp(-hr.00*(f+a)))/6 # trt = 0, Biom = -
+		pi.d = p*r*pi.d11 + (1-p)*r*pi.d10 + p*(1-r)*pi.d01 + (1-p)*(1-r)*pi.d00
+		## schmoor/schoenfeld method ##
+		N = ceiling( (qnorm(alpha/2)+ qnorm(beta))**2/(log(HR)**2*pi.d)*( 1/(p*r) + 1/(r*(1-p)) + 1/((1-r)*p) + 1/((1-r)*(1-p)) ) )
+	return(N)
+}
+
+png.ss = function(HR.1,p,medS.0,alpha,beta,a,f,HR.0,r){
+		## hazard rates ##
+		# control arm - same hazard rates: not prognostic
+		hr.00 = log(2)/medS.0 # biom - 
+		hr.01 = hr.00 # biom +
+		# experimental arm
+		hr.10 = hr.00/HR.0 # biom - 
+		hr.11 = hr.01/HR.1 # biom +
+		HR = HR.1/HR.0 # hazard ratio	
+		## peterson & george/rubinstein method equation 2 ##
+		E.d11 = 1/( p*r*(a - exp(-hr.11*f)*(1-exp(-hr.11*a))/hr.11) ); E.d10 = 1/( (1-p)*r*(a - exp(-hr.10*f)*(1-exp(-hr.10*a))/hr.10) )
+		E.d01 = 1/( p*(1-r)*(a - exp(-hr.01*f)*(1-exp(-hr.01*a))/hr.01) ); E.d00 = 1/( (1-p)*(1-r)*(a - exp(-hr.00*f)*(1-exp(-hr.00*a))/hr.00) )
+		n = (qnorm(alpha/2)+ qnorm(beta))**2*( E.d11 + E.d10 + E.d01 + E.d00 )/log(HR)**2
+		N = ceiling(n*a) # ss assuming a months of accrual time
+	return(N)
+}
+
+fo16.ss = function(HR.1,p,medS.0,alpha,beta,a,f,HR.0,r){
+		## hazard rates ##
+		# control arm - same hazard rates: not prognostic
+		hr.00 = log(2)/medS.0 # biom - 
+		hr.01 = hr.00 # biom +
+		# experimental arm
+		hr.10 = hr.00/HR.0 # biom - 
+		hr.11 = hr.01/HR.1 # biom +
+		HR = HR.1/HR.0 # hazard ratio	
+		## calculating prob of death using simpson's approx and assuming exp distribution ##
+		pi.d11 = 1 - (exp(-hr.11*f)+4*exp(-hr.11*(f+(a/2)))+exp(-hr.11*(f+a)))/6 # trt = 1, Biom = +
+		pi.d10 = 1 - (exp(-hr.10*f)+4*exp(-hr.10*(f+(a/2)))+exp(-hr.10*(f+a)))/6 # trt = 1, Biom = -
+		pi.d01 = 1 - (exp(-hr.01*f)+4*exp(-hr.01*(f+(a/2)))+exp(-hr.01*(f+a)))/6 # trt = 0, Biom = +
+		pi.d00 = 1 - (exp(-hr.00*f)+4*exp(-hr.00*(f+(a/2)))+exp(-hr.00*(f+a)))/6 # trt = 0, Biom = -
+		pi.d = p*r*pi.d11 + (1-p)*r*pi.d10 + p*(1-r)*pi.d01 + (1-p)*(1-r)*pi.d00
+		## peterson & george dumb equation 1 ##
+		N = ceiling( 16*(qnorm(alpha/2)+ qnorm(beta))**2/(log(HR)**2*pi.d) ) 
+	return(N)
+}
+cohort.ss = function(p,r,N){
+	N11 = ceiling(p*r*N); N10 = ceiling((1-p)*r*N); N01 = ceiling(p*(1-r)*N); N00 = ceiling((1-p)*(1-r)*N)
+	return(c(N11,N10,N01,N00))
+}
+#####################################################
+# functions for simulation evaluation of method
+sim.trial = function(it,N,p,r,medS.0,HR.0,HR.1,a,f,b){
+		## hazard rates ##
+		# control arm - same hazard rates: not prognostic
+		hr.00 = log(2)/medS.0; hr.01 = hr.00 
+		# experimental arm
+		hr.10 = hr.00/HR.0; hr.11 = hr.01/HR.1
+		HR = HR.1/HR.0 # hazard ratio	
+		N11 = ceiling(p*r*N); N10 = ceiling((1-p)*r*N); N01 = ceiling(p*(1-r)*N); N00 = ceiling((1-p)*(1-r)*N)
+		if (is.na (b) == T){ # if b = NA then assume exp death times
+			DeathTimes = c(rexp(N11,hr.11),rexp(N10,hr.10),rexp(N01,hr.01),rexp(N00,hr.00) ) # time to event, c(pos biomarker, neg biomarker)
+		}else{ b1 = medS.0/(log(2)^(1/b)*HR.0^(-1/b)); b2 = b1*HR.0^(-1/b)/HR.1^(-1/b) # weibull parameters
+		DeathTimes = c(rweibull(N11,shape = b,scale = b2),rweibull(N10,shape = b,scale = b1),rweibull(N01,shape = b,scale = b2*HR.1^(-1/b)),rweibull(N00,shape = b,scale = b1*HR.0^(-1/b)))
+		}
+		CTimes = runif(N11+N10+N01+N00,min = f, max = a+f) # censoring time
+		events = ifelse(DeathTimes <= CTimes,1,0) # censoring indicator, 1 = death obs
+		times = pmin(DeathTimes,CTimes) # observed RV
+		X1 = c(rep(c(1,0),c(N11,N10)),rep(c(1,0),c(N01,N00)) ) # Biom indicator, 1 = biomarker pos
+		X2 = rep(c(1,0),c(N11+N10,N01+N00)) # trt indicator, 1 = experimental trt
+		fit = coxph(Surv(times,events)~X1*X2)
+		pval = anova(fit)[4,4]
+		return(pval)
+}
+power = function(n.sim,alpha, N,p,r,medS.0,HR.0,HR.1,a,f,b){
+	set.seed(4206) 
+	sim.study = sapply(1:n.sim,sim.trial,N = N,p = p,r = r,medS.0 = medS.0,HR.0 = HR.0,HR.1 = HR.1,a = a,f = f,b = b)
+	return(sum(sim.study<alpha)/n.sim)
+}
+#####################################################
+### input: study setting ###
+## median (biomarker neg) survival ##
+medS.0 = 3
+## type 1 and 2 error (for 2-sided HT) ##
+alpha = 0.05; beta = 0.2
+## acrrual and follow up (unit: year) ##
+a = 9; f = 9
+## hazard ratio for biomarker neg/pos ##
+HR.0 = 1.2; HR.1 = 3.6
+## positive biomarker prevalence ##
+p = 0.2
+## allocation proportion for randomization to trt arm ##
+r = 0.5
+## input b (shape) to assume weibull death times (exp death times is default) ##
+b = NA
+
+## calc SS for different methods ##
+N.schmoor = schmoor.ss(HR.1 = HR.1,p = p,medS.0 = medS.0,alpha = alpha,beta = beta,a = a,f = f,HR.0 = HR.0,r = r)
+N.png = png.ss(HR.1 = HR.1,p = p,medS.0 = medS.0,alpha = alpha,beta = beta,a = a,f = f,HR.0 = HR.0,r = r)
+N.fo16 = fo16.ss(HR.1 = HR.1,p = p,medS.0 = medS.0,alpha = alpha,beta = beta,a = a,f = f,HR.0 = HR.0,r = r)
+
+## evaluate different SS methods ##
+n.sim = 5000 # number of simulated trials for power evaluation
+pow.schmoor = power(n.sim = n.sim,alpha = alpha, N = N.schmoor,p = p,r = r,medS.0 = medS.0,HR.0 = HR.0,HR.1 = HR.1,a = a,f = f,b = b)
+pow.png = power(n.sim = n.sim,alpha = alpha, N = N.png,p = p,r = r,medS.0 = medS.0,HR.0 = HR.0,HR.1 = HR.1,a = a,f = f,b = b)
+pow.fo16 = power(n.sim = n.sim,alpha = alpha, N = N.fo16,p = p,r = r,medS.0 = medS.0,HR.0 = HR.0,HR.1 = HR.1,a = a,f = f,b = b)
+
+# output results 
+out = rbind(c(sum(cohort.ss(N.schmoor,p = p,r = r)),cohort.ss(N.schmoor,p = p,r = r),round(pow.schmoor*100)),
+		c(sum(cohort.ss(N.png,p = p,r = r)),cohort.ss(N.png,p = p,r = r),round(pow.png*100)),
+		c(sum(cohort.ss(N.fo16,p = p,r = r)),cohort.ss(N.fo16,p = p,r = r),round(pow.fo16*100))
+)
+colnames(out) = c("SS","SS(T+,M+)","SS(T+,M-)","SS(T-,M+)","SS(T-,M-)","Power")
+rownames(out) = c("Schmoor","Peterson&George","Fo16")
+print(out)
+write.csv(out,"SSPowerResults.csv")
