@@ -3,7 +3,7 @@ library(survival)
 # run (3) functions below to calculate SS for 3 methods; (2) functions below to calculate power 
 # can run for individual method or all 3 methods and print all results (csv exported to working directory)
 #####################################################
-# functions for different SS methods
+### functions for different SS methods ###
 schoenfeld.ss = function(HR, medS.1, alpha, beta, a, f, p){
 	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1 # biomarker hazard rates (pos vs. neg)
 	# pr(death in pos/neg subgroup) using simpsons rule
@@ -29,7 +29,7 @@ fo4.ss = function(HR, medS.1, alpha, beta, a, f, p){
 	return(N)
 }
 #####################################################
-# functions for simulation evaluation of method
+### functions for simulation evaluation of method ###
 sim.trial = function(it,N,medS.1,HR, p, b){
 	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1; N0 = ceiling((1-p)*N); N1 = ceiling(p*N)
 	if (is.na (b) == T){ DeathTimes = c(rexp(N1,hr.1),rexp(N0,hr.0))
@@ -74,7 +74,7 @@ pow.rubin = power(n.sim = n.sim, alpha = alpha, N = N.rubin, medS.1 = medS.1, HR
 pow.fo4 = power(n.sim = n.sim, alpha = alpha, N = N.fo4, medS.1 = medS.1, HR = HR, p = p, b = b)
 
 #####################################################
-## output results ##
+### output results ###
 out = rbind(c(ceiling(p*N.schoen)+ceiling((1-p)*N.schoen),ceiling(p*N.schoen),ceiling((1-p)*N.schoen),round(pow.schoen*100)),
 		c(ceiling(p*N.rubin)+ceiling((1-p)*N.rubin),ceiling(p*N.rubin),ceiling((1-p)*N.rubin),round(pow.rubin*100)),
 		c(ceiling(p*N.fo4)+ceiling((1-p)*N.fo4),ceiling(p*N.fo4),ceiling((1-p)*N.fo4),round(pow.fo4*100))
