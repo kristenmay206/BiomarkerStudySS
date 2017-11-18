@@ -5,62 +5,46 @@ library(survival)
 #####################################################
 # functions for different SS methods
 schoenfeld.ss = function(HR, medS.1, alpha, beta, a, f, p){
-	# biomarker hazard rates (pos vs. neg)
-	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1
+	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1 # biomarker hazard rates (pos vs. neg)
 	# pr(death in pos/neg subgroup) using simpsons rule
 	pi.d1 = 1 - (exp(-hr.1*f)+4*exp(-hr.1*(f+(a/2)))+exp(-hr.1*(f+a)))/6; pi.d0 = 1 - (exp(-hr.0*f)+4*exp(-hr.0*(f+(a/2)))+exp(-hr.0*(f+a)))/6
 	pi.d = p*pi.d1 + (1-p)*pi.d0 # pr(death) assuming p prevalence of pos subgroup
-	# ss calc for schoenfeld method
 	N = ceiling((qnorm(alpha/2)+ qnorm(beta))**2/( p*(1-p)*log(HR)**2*pi.d ))
 	return(N)
 }
-
 rubinstein.ss = function(HR, medS.1, alpha, beta, a, f, p){
-	# biomarker hazard rates (pos vs. neg)
-	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1
+	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1 # biomarker hazard rates (pos vs. neg)
 	# expected number of deaths neg/pos subgroup
 	E.d0 = 1/( (1-p)*(a - exp(-hr.0*f)*(1-exp(-hr.0*a))/hr.0) ); E.d1 = 1/( p*(a - exp(-hr.1*f)*(1-exp(-hr.1*a))/hr.1) )
-	# ss calc for rubinstein method 
 	n = (qnorm(alpha/2)+ qnorm(beta))**2*( E.d0 + E.d1 )/log(HR)**2
 	N = ceiling(n*a) # ss assuming a months of accrual time
 	return(N)
 }
-
 fo4.ss = function(HR, medS.1, alpha, beta, a, f, p){
-	# biomarker hazard rates (pos vs. neg)
-	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1
+	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1 # biomarker hazard rates (pos vs. neg)
 	# pr(death in pos/neg subgroup) using simpsons rule
 	pi.d1 = 1 - (exp(-hr.1*f)+4*exp(-hr.1*(f+(a/2)))+exp(-hr.1*(f+a)))/6; pi.d0 = 1 - (exp(-hr.0*f)+4*exp(-hr.0*(f+(a/2)))+exp(-hr.0*(f+a)))/6
 	pi.d = p*pi.d1 + (1-p)*pi.d0 # pr(death) assuming p prevalence of pos subgroup
-	# ss calc for fo4 method
 	N = ceiling(4*(qnorm(alpha/2)+ qnorm(beta))**2/(log(HR)**2*pi.d ))
 	return(N)
 }
 #####################################################
 # functions for simulation evaluation of method
 sim.trial = function(it,N,medS.1,HR, p, b){
-	# biomarker hazard rates (pos vs. neg)
-	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1
-	N0 = ceiling((1-p)*N); N1 = ceiling(p*N)
-	if (is.na (b) == T){ # if b = NA then assume exp death times
-		DeathTimes = c(rexp(N1,hr.1),rexp(N0,hr.0))
+	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1; N0 = ceiling((1-p)*N); N1 = ceiling(p*N)
+	if (is.na (b) == T){ DeathTimes = c(rexp(N1,hr.1),rexp(N0,hr.0))
 	}else{ gamma = medS.1/(log(2)^(1/b)) # scale parameter for weibull dist
 		DeathTimes = c(rweibull(N1,shape = b,scale = gamma),rweibull(N0,shape = b,scale = gamma*HR^(-1/b) )) }
-	CensTimes = runif(N1+N0,min = f, max = a+f)
-	events = ifelse(DeathTimes <= CensTimes,1,0)
-	times = pmin(DeathTimes,CensTimes)
-	X = rep(c(1,0),c(N1,N0))
-	LRts = survdiff(Surv(times,events)~X)$chisq
-	pval = 1-pchisq(LRts,1)
+	CensTimes = runif(N1+N0,min = f, max = a+f); events = ifelse(DeathTimes <= CensTimes,1,0)
+	times = pmin(DeathTimes,CensTimes); X = rep(c(1,0),c(N1,N0))
+	LRts = survdiff(Surv(times,events)~X)$chisq; pval = 1-pchisq(LRts,1)
 	return(pval)
 }
 power = function(n.sim, alpha, N, medS.1,HR, p, b){
-	set.seed(4206) 
-	sim.study = sapply(1:n.sim,sim.trial,N = N,medS.1 = medS.1,HR = HR, p = p, b = b)
+	set.seed(4206); sim.study = sapply(1:n.sim,sim.trial,N = N,medS.1 = medS.1,HR = HR, p = p, b = b)
 	return(sum(sim.study<alpha)/n.sim)
 }
 #####################################################
-
 ### input: study setting ###
 ## median (biomarker pos) survival ##
 # note if have biomarker pos hazard rate: medS.1 = log(2)/hr.1
@@ -89,11 +73,12 @@ pow.schoen = power(n.sim = n.sim, alpha = alpha, N = N.schoen, medS.1 = medS.1, 
 pow.rubin = power(n.sim = n.sim, alpha = alpha, N = N.rubin, medS.1 = medS.1, HR = HR, p = p, b = b)
 pow.fo4 = power(n.sim = n.sim, alpha = alpha, N = N.fo4, medS.1 = medS.1, HR = HR, p = p, b = b)
 
-# output results 
+#####################################################
+## output results ##
 out = rbind(c(ceiling(p*N.schoen)+ceiling((1-p)*N.schoen),ceiling(p*N.schoen),ceiling((1-p)*N.schoen),round(pow.schoen*100)),
 		c(ceiling(p*N.rubin)+ceiling((1-p)*N.rubin),ceiling(p*N.rubin),ceiling((1-p)*N.rubin),round(pow.rubin*100)),
 		c(ceiling(p*N.fo4)+ceiling((1-p)*N.fo4),ceiling(p*N.fo4),ceiling((1-p)*N.fo4),round(pow.fo4*100))
-)
+	)
 colnames(out) = c("SS","SS(M+)","SS(M-)","Power")
 rownames(out) = c("Schoenfeld","Rubinstein","Fo4")
 print(out)
