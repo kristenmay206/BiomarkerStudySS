@@ -63,8 +63,10 @@ power = function(n.sim, alpha, N, medS.1,HR, p, b){
 
 ### input: study setting ###
 ## median (biomarker pos) survival ##
+# note if have biomarker pos hazard rate: medS.1 = log(2)/hr.1
 	medS.1 = 15
 ## hazard ratio: neg hazard rate/ pos hazard rate ##
+# note if have neg hazard rate: HR = hr.0/hr.1
 	HR = 3
 ## type 1 and 2 error (for 2-sided HT) ##
 	alpha = 0.05; beta = 0.2
@@ -73,7 +75,7 @@ power = function(n.sim, alpha, N, medS.1,HR, p, b){
 ## positive biomarker prevalence ##
 	p = 0.5
 ## input b (shape) to assume weibull death times (exp death times is default) ##
-##		note: scale parameter calc s.t. med surv time in pos group is medS.1 ##
+# note: scale parameter calc s.t. med surv time in pos group is medS.1
 	b = NA # 0.25
 
 ## calc SS for different methods ##
