@@ -3,7 +3,7 @@ library(survival)
 # run (4) functions below to calculate SS for 3 methods and cohort SS; (2) functions below to calculate power 
 # can run for individual method or all 3 methods and print all results (csv exported to working directory)
 #####################################################
-# functions for different SS methods
+### functions for different SS methods ###
 schmoor.ss = function(HR.1,p,medS.0,alpha,beta,a,f,HR.0,hr.01,r){
 		hr.00 = log(2)/medS.0 # hazard rate for (T-,M-)
 		if(hr.01 == NA) hr.01 = hr.00 # hazard rate for (T-,M+)
@@ -48,7 +48,7 @@ cohort.ss = function(p,r,N){
 	return(c(N11,N10,N01,N00))
 }
 #####################################################
-# functions for simulation evaluation of method
+### functions for simulation evaluation of method ###
 sim.trial = function(it,N,p,r,medS.0,HR.0,hr.01,HR.1,a,f,b){
 		hr.00 = log(2)/medS.0 # hazard rate for (T-,M-)
 		if(hr.01 == NA) hr.01 = hr.00 # hazard rate for (T-,M+)
@@ -102,7 +102,7 @@ pow.png = power(n.sim = n.sim,alpha = alpha, N = N.png,p = p,r = r,medS.0 = medS
 pow.fo16 = power(n.sim = n.sim,alpha = alpha, N = N.fo16,p = p,r = r,medS.0 = medS.0,HR.0 = HR.0,HR.1 = HR.1,hr.01 = hr.01,a = a,f = f,b = b)
 
 #####################################################
-## output results ##
+### output results ###
 out = rbind(c(sum(cohort.ss(N.schmoor,p = p,r = r)),cohort.ss(N.schmoor,p = p,r = r),round(pow.schmoor*100)),
 		c(sum(cohort.ss(N.png,p = p,r = r)),cohort.ss(N.png,p = p,r = r),round(pow.png*100)),
 		c(sum(cohort.ss(N.fo16,p = p,r = r)),cohort.ss(N.fo16,p = p,r = r),round(pow.fo16*100))
