@@ -1,4 +1,4 @@
-### calculate sample size/power for survival data ###
+### R code to calculate sample size/power for survival data: Predictive Biomarker Study ###
 library(survival)
 # run (4) functions below to calculate SS for 3 methods and cohort SS; (2) functions below to calculate power 
 # can run for individual method or all 3 methods and print all results (csv exported to working directory)
