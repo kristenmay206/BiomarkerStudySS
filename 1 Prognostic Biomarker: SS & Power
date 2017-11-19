@@ -4,34 +4,34 @@ library(survival)
 # can run for individual method or all 3 methods and print all results (csv exported to working directory)
 #####################################################
 ### functions for different SS methods ###
-schoenfeld.ss = function(HR, medS.1, alpha, beta, a, f, p){
+schoenfeld.ss = function(HR, medS.1, alpha, beta, a, f, w){
 	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1 # biomarker hazard rates (pos vs. neg)
 	# pr(death in pos/neg subgroup) using simpsons rule
 	pi.d1 = 1 - (exp(-hr.1*f)+4*exp(-hr.1*(f+(a/2)))+exp(-hr.1*(f+a)))/6; pi.d0 = 1 - (exp(-hr.0*f)+4*exp(-hr.0*(f+(a/2)))+exp(-hr.0*(f+a)))/6
-	pi.d = p*pi.d1 + (1-p)*pi.d0 # pr(death) assuming p prevalence of pos subgroup
-	N = ceiling((qnorm(alpha/2)+ qnorm(beta))**2/( p*(1-p)*log(HR)**2*pi.d ))
+	pi.d = w*pi.d1 + (1-w)*pi.d0 # pr(death) assuming w prevalence of pos subgroup
+	N = ceiling((qnorm(alpha/2)+ qnorm(beta))**2/( w*(1-w)*log(HR)**2*pi.d ))
 	return(N)
 }
-rubinstein.ss = function(HR, medS.1, alpha, beta, a, f, p){
+rubinstein.ss = function(HR, medS.1, alpha, beta, a, f, w){
 	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1 # biomarker hazard rates (pos vs. neg)
 	# expected number of deaths neg/pos subgroup
-	E.d0 = 1/( (1-p)*(a - exp(-hr.0*f)*(1-exp(-hr.0*a))/hr.0) ); E.d1 = 1/( p*(a - exp(-hr.1*f)*(1-exp(-hr.1*a))/hr.1) )
+	E.d0 = 1/( (1-w)*(a - exp(-hr.0*f)*(1-exp(-hr.0*a))/hr.0) ); E.d1 = 1/( w*(a - exp(-hr.1*f)*(1-exp(-hr.1*a))/hr.1) )
 	n = (qnorm(alpha/2)+ qnorm(beta))**2*( E.d0 + E.d1 )/log(HR)**2
 	N = ceiling(n*a) # ss assuming a months of accrual time
 	return(N)
 }
-fo4.ss = function(HR, medS.1, alpha, beta, a, f, p){
+fo4.ss = function(HR, medS.1, alpha, beta, a, f, w){
 	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1 # biomarker hazard rates (pos vs. neg)
 	# pr(death in pos/neg subgroup) using simpsons rule
 	pi.d1 = 1 - (exp(-hr.1*f)+4*exp(-hr.1*(f+(a/2)))+exp(-hr.1*(f+a)))/6; pi.d0 = 1 - (exp(-hr.0*f)+4*exp(-hr.0*(f+(a/2)))+exp(-hr.0*(f+a)))/6
-	pi.d = p*pi.d1 + (1-p)*pi.d0 # pr(death) assuming p prevalence of pos subgroup
+	pi.d = w*pi.d1 + (1-w)*pi.d0 # pr(death) assuming w prevalence of pos subgroup
 	N = ceiling(4*(qnorm(alpha/2)+ qnorm(beta))**2/(log(HR)**2*pi.d ))
 	return(N)
 }
 #####################################################
 ### functions for simulation evaluation of method ###
-sim.trial = function(it,N,medS.1,HR, p, b){
-	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1; N0 = ceiling((1-p)*N); N1 = ceiling(p*N)
+sim.trial = function(it,N,medS.1,HR, w, b){
+	hr.1 = log(2)/medS.1; hr.0 = HR*hr.1; N0 = ceiling((1-w)*N); N1 = ceiling(w*N)
 	if (is.na (b) == T){ DeathTimes = c(rexp(N1,hr.1),rexp(N0,hr.0))
 	}else{ gamma = medS.1/(log(2)^(1/b)) # scale parameter for weibull dist
 		DeathTimes = c(rweibull(N1,shape = b,scale = gamma),rweibull(N0,shape = b,scale = gamma*HR^(-1/b) )) }
@@ -40,8 +40,8 @@ sim.trial = function(it,N,medS.1,HR, p, b){
 	LRts = survdiff(Surv(times,events)~X)$chisq; pval = 1-pchisq(LRts,1)
 	return(pval)
 }
-power = function(n.sim, alpha, N, medS.1,HR, p, b){
-	set.seed(4206); sim.study = sapply(1:n.sim,sim.trial,N = N,medS.1 = medS.1,HR = HR, p = p, b = b)
+power = function(n.sim, alpha, N, medS.1,HR, w, b){
+	set.seed(4206); sim.study = sapply(1:n.sim,sim.trial,N = N,medS.1 = medS.1,HR = HR, w = w, b = b)
 	return(sum(sim.study<alpha)/n.sim)
 }
 #####################################################
@@ -57,27 +57,27 @@ power = function(n.sim, alpha, N, medS.1,HR, p, b){
 ## acrrual and follow up (unit: month) ##
 	a = 24; f = 12
 ## positive biomarker prevalence ##
-	p = 0.5
+	w = 0.5
 ## input b (shape) to assume weibull death times (exp death times is default) ##
 # note: scale parameter calc s.t. med surv time in pos group is medS.1
 	b = NA # 0.25
 
 ## calc SS for different methods ##
-N.schoen = schoenfeld.ss(HR = HR, medS.1 = medS.1, alpha = alpha, beta = beta, a = a, f = f, p = p)
-N.rubin = rubinstein.ss(HR = HR, medS.1 = medS.1, alpha = alpha, beta = beta, a = a, f = f, p = p)
-N.fo4 = fo4.ss(HR = HR, medS.1 = medS.1, alpha = alpha, beta = beta, a = a, f = f, p = p)
+N.schoen = schoenfeld.ss(HR = HR, medS.1 = medS.1, alpha = alpha, beta = beta, a = a, f = f, w = w)
+N.rubin = rubinstein.ss(HR = HR, medS.1 = medS.1, alpha = alpha, beta = beta, a = a, f = f, w = w)
+N.fo4 = fo4.ss(HR = HR, medS.1 = medS.1, alpha = alpha, beta = beta, a = a, f = f, w = w)
 
 ## evaluate different SS methods ##
 n.sim = 5000 # number of simulated trials for power evaluation
-pow.schoen = power(n.sim = n.sim, alpha = alpha, N = N.schoen, medS.1 = medS.1, HR = HR, p = p, b = b)
-pow.rubin = power(n.sim = n.sim, alpha = alpha, N = N.rubin, medS.1 = medS.1, HR = HR, p = p, b = b)
-pow.fo4 = power(n.sim = n.sim, alpha = alpha, N = N.fo4, medS.1 = medS.1, HR = HR, p = p, b = b)
+pow.schoen = power(n.sim = n.sim, alpha = alpha, N = N.schoen, medS.1 = medS.1, HR = HR, w = w, b = b)
+pow.rubin = power(n.sim = n.sim, alpha = alpha, N = N.rubin, medS.1 = medS.1, HR = HR, w = w, b = b)
+pow.fo4 = power(n.sim = n.sim, alpha = alpha, N = N.fo4, medS.1 = medS.1, HR = HR, w = w, b = b)
 
 #####################################################
 ### output results ###
-out = rbind(c(ceiling(p*N.schoen)+ceiling((1-p)*N.schoen),ceiling(p*N.schoen),ceiling((1-p)*N.schoen),round(pow.schoen*100)),
-		c(ceiling(p*N.rubin)+ceiling((1-p)*N.rubin),ceiling(p*N.rubin),ceiling((1-p)*N.rubin),round(pow.rubin*100)),
-		c(ceiling(p*N.fo4)+ceiling((1-p)*N.fo4),ceiling(p*N.fo4),ceiling((1-p)*N.fo4),round(pow.fo4*100))
+out = rbind(c(ceiling(w*N.schoen)+ceiling((1-w)*N.schoen),ceiling(w*N.schoen),ceiling((1-w)*N.schoen),round(pow.schoen*100)),
+		c(ceiling(w*N.rubin)+ceiling((1-w)*N.rubin),ceiling(w*N.rubin),ceiling((1-w)*N.rubin),round(pow.rubin*100)),
+		c(ceiling(w*N.fo4)+ceiling((1-w)*N.fo4),ceiling(w*N.fo4),ceiling((1-w)*N.fo4),round(pow.fo4*100))
 	)
 colnames(out) = c("SS","SS(M+)","SS(M-)","Power")
 rownames(out) = c("Schoenfeld","Rubinstein","Fo4")
