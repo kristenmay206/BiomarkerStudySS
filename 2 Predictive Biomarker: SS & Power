@@ -6,7 +6,7 @@ library(survival)
 ### functions for different SS methods ###
 schmoor.ss = function(HR.1,w,medS.0,alpha,beta,a,f,HR.0,hr.01,p){
 		hr.00 = log(2)/medS.0 # hazard rate for (T-,M-)
-		if(hr.01 == NA) hr.01 = hr.00 # hazard rate for (T-,M+)
+		if(is.na (hr.01) == T) hr.01 = hr.00 # hazard rate for (T-,M+)
 		hr.10 = hr.00/HR.0 # hazard rate for (T+,M-)
 		hr.11 = hr.01/HR.1 # hazard rate for (T+,M+)
 		HR = HR.1/HR.0 # hazard ratio	
@@ -19,7 +19,7 @@ schmoor.ss = function(HR.1,w,medS.0,alpha,beta,a,f,HR.0,hr.01,p){
 }
 png.ss = function(HR.1,w,medS.0,alpha,beta,a,f,HR.0,hr.01,p){
 		hr.00 = log(2)/medS.0 # hazard rate for (T-,M-)
-		if(hr.01 == NA) hr.01 = hr.00 # hazard rate for (T-,M+)
+		if(is.na (hr.01) == T) hr.01 = hr.00 # hazard rate for (T-,M+)
 		hr.10 = hr.00/HR.0 # hazard rate for (T+,M-)
 		hr.11 = hr.01/HR.1 # hazard rate for (T+,M+)
 		HR = HR.1/HR.0 # hazard ratio	
@@ -32,7 +32,7 @@ png.ss = function(HR.1,w,medS.0,alpha,beta,a,f,HR.0,hr.01,p){
 }
 fo16.ss = function(HR.1,w,medS.0,alpha,beta,a,f,HR.0,hr.01,p){
 		hr.00 = log(2)/medS.0 # hazard rate for (T-,M-)
-		if(hr.01 == NA) hr.01 = hr.00 # hazard rate for (T-,M+)
+		if(is.na (hr.01) == T) hr.01 = hr.00 # hazard rate for (T-,M+)
 		hr.10 = hr.00/HR.0 # hazard rate for (T+,M-)
 		hr.11 = hr.01/HR.1 # hazard rate for (T+,M+)
 		HR = HR.1/HR.0 # hazard ratio	
@@ -51,7 +51,7 @@ cohort.ss = function(w,p,N){
 ### functions for simulation evaluation of method ###
 sim.trial = function(it,N,w,p,medS.0,HR.0,hr.01,HR.1,a,f,b){
 		hr.00 = log(2)/medS.0 # hazard rate for (T-,M-)
-		if(hr.01 == NA) hr.01 = hr.00 # hazard rate for (T-,M+)
+		if(is.na (hr.01) == T) hr.01 = hr.00 # hazard rate for (T-,M+)
 		hr.10 = hr.00/HR.0; hr.11 = hr.01/HR.1 # hazard rate for (T+,M+)
 		HR = HR.1/HR.0; N11 = ceiling(w*p*N); N10 = ceiling((1-w)*p*N); N01 = ceiling(w*(1-p)*N); N00 = ceiling((1-w)*(1-p)*N)
 		if (is.na (b) == T){ # if b = NA then assume exp death times
